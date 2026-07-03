@@ -7,12 +7,11 @@
 - Passed: 49
 - Failed: 78
 
-| Severity | Count |
-|----------|------:|
-| Critical | Not reported in the generated artifact |
-| High | Not reported in the generated artifact |
-| Medium | Not reported in the generated artifact |
-| Low | Not reported in the generated artifact |
+| Framework | Passed | Failed |
+|-----------|-------:|-------:|
+| terraform | 49 | 78 |
+| secrets | 0 | 2 |
+
 
 > The generated Checkov JSON report contains 49 passed and 78 failed checks for the Terraform sample. In this Checkov version, the exported JSON does not include severity fields for the failed checks, so severity counts cannot be claimed from this output.
 
@@ -25,7 +24,21 @@
 | `CKV_AWS_290` | 3 | Ensures IAM policies do not allow write access without constraints |
 | `CKV_AWS_382` | 3 | Ensures no security groups allow egress from `0.0.0.0:0` to port `-1` |
 
-### Pulumi scan
+
+### Module-leverage analysis (Lecture 6 slide 17)
+A single module-level fix would be to enforce least-privilege IAM defaults in the shared IAM module, because several failing checks revolve around overly broad role and policy permissions. In the Terraform sample, tightening the default policy document and removing wildcard actions/resources would eliminate many of the same findings at once.
+
+## Task 2: KICS on Ansible
+
+### Ansible - Severity breakdown
+| Severity | Count |
+|----------|------:|
+| HIGH | 3 |
+| MEDIUM | 0 |
+| LOW | 1 |
+| INFO | 0 |
+
+### Pulumi - Severity breakdown
 | Severity | Count |
 |----------|------:|
 | Critical | 1 |
@@ -34,27 +47,12 @@
 | Low | 0 |
 | Info | 2 |
 
-> Fresh KICS output for the Pulumi sample was generated in [labs/lab6/results/kics-pulumi/results.json](labs/lab6/results/kics-pulumi/results.json), and it reported 6 findings total.
-
-### Module-leverage analysis (Lecture 6 slide 17)
-A single module-level fix would be to enforce least-privilege IAM defaults in the shared IAM module, because several failing checks revolve around overly broad role and policy permissions. In the Terraform sample, tightening the default policy document and removing wildcard actions/resources would eliminate many of the same findings at once.
-
-## Task 2: KICS on Ansible
-
-### Severity breakdown
-| Severity | Count |
-|----------|------:|
-| HIGH | 9 |
-| MEDIUM | 0 |
-| LOW | 1 |
-| INFO | 0 |
-
-### Top 5 KICS queries (by frequency)
+### Top 5 KICS queries — Ansible (by frequency)
 | Query | Severity | Files |
 |-------|----------|------:|
 | `Passwords And Secrets - Generic Password` | HIGH | 6 |
-| `Passwords And Secrets - Generic Secret` | HIGH | 1 |
 | `Passwords And Secrets - Password in URL` | HIGH | 2 |
+| `Passwords And Secrets - Generic Secret` | HIGH | 1 |
 | `Unpinned Package Version` | LOW | 1 |
 
 ### Checkov vs KICS — when to use which?
@@ -83,8 +81,209 @@ definition:
 ```
 
 ### Rule fires
-```text
-Verified from fresh execution: CKV2_CUSTOM_1 fired for aws_s3_bucket.public_data and aws_s3_bucket.unencrypted_data in labs/lab6/results/checkov-custom/results_json.json.
+```bash
+[
+  {
+    "check_id": "CKV2_CUSTOM_1",
+    "bc_check_id": null,
+    "check_name": "Ensure S3 buckets have lifecycle configuration",
+    "check_result": {
+      "result": "FAILED",
+      "entity": {
+        "aws_s3_bucket": {
+          "public_data": {
+            "__end_line__": 21,
+            "__start_line__": 13,
+            "acl": [
+              "public-read"
+            ],
+            "bucket": [
+              "my-public-bucket-lab6"
+            ],
+            "tags": [
+              {
+                "Name": "Public Data Bucket"
+              }
+            ],
+            "__address__": "aws_s3_bucket.public_data",
+            "__provider_address__": "aws.default"
+          }
+        }
+      },
+      "evaluated_keys": [
+        "lifecycle_rule"
+      ]
+    },
+    "code_block": [
+      [
+        13,
+        "resource \"aws_s3_bucket\" \"public_data\" {\n"
+      ],
+      [
+        14,
+        "  bucket = \"my-public-bucket-lab6\"\n"
+      ],
+      [
+        15,
+        "  acl    = \"public-read\"  # Public access enabled!\n"
+      ],
+      [
+        16,
+        "\n"
+      ],
+      [
+        17,
+        "  tags = {\n"
+      ],
+      [
+        18,
+        "    Name = \"Public Data Bucket\"\n"
+      ],
+      [
+        19,
+        "    # Missing required tags: Environment, Owner, CostCenter\n"
+      ],
+      [
+        20,
+        "  }\n"
+      ],
+      [
+        21,
+        "}\n"
+      ]
+    ],
+    "file_path": "/main.tf",
+    "file_abs_path": "/home/i/Desktop/New Folder/DevSecOps-Intro/labs/lab6/vulnerable-iac/terraform/main.tf",
+    "repo_file_path": "/labs/lab6/vulnerable-iac/terraform/main.tf",
+    "file_line_range": [
+      13,
+      21
+    ],
+    "resource": "aws_s3_bucket.public_data",
+    "evaluations": null,
+    "check_class": "checkov.common.graph.checks_infra.base_check",
+    "fixed_definition": null,
+    "entity_tags": {
+      "Name": "Public Data Bucket"
+    },
+    "caller_file_path": null,
+    "caller_file_line_range": null,
+    "resource_address": null,
+    "severity": "HIGH",
+    "bc_category": null,
+    "benchmarks": {},
+    "description": null,
+    "short_description": null,
+    "vulnerability_details": null,
+    "connected_node": null,
+    "guideline": null,
+    "details": [],
+    "check_len": null,
+    "definition_context_file_path": "/home/i/Desktop/New Folder/DevSecOps-Intro/labs/lab6/vulnerable-iac/terraform/main.tf"
+  },
+  {
+    "check_id": "CKV2_CUSTOM_1",
+    "bc_check_id": null,
+    "check_name": "Ensure S3 buckets have lifecycle configuration",
+    "check_result": {
+      "result": "FAILED",
+      "entity": {
+        "aws_s3_bucket": {
+          "unencrypted_data": {
+            "__end_line__": 33,
+            "__start_line__": 24,
+            "acl": [
+              "private"
+            ],
+            "bucket": [
+              "my-unencrypted-bucket-lab6"
+            ],
+            "versioning": [
+              {
+                "enabled": [
+                  false
+                ]
+              }
+            ],
+            "__address__": "aws_s3_bucket.unencrypted_data",
+            "__provider_address__": "aws.default"
+          }
+        }
+      },
+      "evaluated_keys": [
+        "lifecycle_rule"
+      ]
+    },
+    "code_block": [
+      [
+        24,
+        "resource \"aws_s3_bucket\" \"unencrypted_data\" {\n"
+      ],
+      [
+        25,
+        "  bucket = \"my-unencrypted-bucket-lab6\"\n"
+      ],
+      [
+        26,
+        "  acl    = \"private\"\n"
+      ],
+      [
+        27,
+        "  \n"
+      ],
+      [
+        28,
+        "  # No server_side_encryption_configuration!\n"
+      ],
+      [
+        29,
+        "  \n"
+      ],
+      [
+        30,
+        "  versioning {\n"
+      ],
+      [
+        31,
+        "    enabled = false  # Versioning disabled\n"
+      ],
+      [
+        32,
+        "  }\n"
+      ],
+      [
+        33,
+        "}\n"
+      ]
+    ],
+    "file_path": "/main.tf",
+    "file_abs_path": "/home/i/Desktop/New Folder/DevSecOps-Intro/labs/lab6/vulnerable-iac/terraform/main.tf",
+    "repo_file_path": "/labs/lab6/vulnerable-iac/terraform/main.tf",
+    "file_line_range": [
+      24,
+      33
+    ],
+    "resource": "aws_s3_bucket.unencrypted_data",
+    "evaluations": null,
+    "check_class": "checkov.common.graph.checks_infra.base_check",
+    "fixed_definition": null,
+    "entity_tags": null,
+    "caller_file_path": null,
+    "caller_file_line_range": null,
+    "resource_address": null,
+    "severity": "HIGH",
+    "bc_category": null,
+    "benchmarks": {},
+    "description": null,
+    "short_description": null,
+    "vulnerability_details": null,
+    "connected_node": null,
+    "guideline": null,
+    "details": [],
+    "check_len": null,
+    "definition_context_file_path": "/home/i/Desktop/New Folder/DevSecOps-Intro/labs/lab6/vulnerable-iac/terraform/main.tf"
+  }
+]
 ```
 
 ### Why this rule matters
